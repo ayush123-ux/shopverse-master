@@ -10,7 +10,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());//body parser
-
 const userRoute=require("./routes/userRoute");
 app.use("/user",userRoute);
 const productRoute=require("./routes/productRoute");
