@@ -1,23 +1,19 @@
 "use client";
 import API from "@/lib/axios";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChangeEvent, FormEvent, Suspense, useState } from "react";
  type Info={
     name:string,
     identify:string,
     role:string,
     password:string
 }
-const Signup=()=>{
+function SignupInner() {
   const route=useRouter();
-  const params =
-  typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search)
-    : null;
-
-const verified = params?.get("verified");
-const isVerified = verified === "true";
+  const searchParams = useSearchParams();
+  const verified = searchParams.get("verified");
+  const isVerified = verified === "true";
     const[form,setForm]=useState<Info>({
         name:"",
         identify:"",
@@ -45,6 +41,7 @@ const isVerified = verified === "true";
 
       if (res.data?.token) {
         localStorage.setItem("token", res.data.token);
+        window.dispatchEvent(new Event("auth-change"));
       }
 
       alert("Signup Successful");
@@ -79,6 +76,7 @@ const isVerified = verified === "true";
             border border-[#333] text-white
             focus:outline-none focus:ring-2 focus:ring-[#d4a373]
             placeholder-gray-500 transition"
+          suppressHydrationWarning
         />
 
         <input
@@ -91,21 +89,8 @@ const isVerified = verified === "true";
             border border-[#333] text-white
             focus:outline-none focus:ring-2 focus:ring-[#d4a373]
             placeholder-gray-500 transition"
+          suppressHydrationWarning
         />
-
-        {isEmail && !isVerified && (
-          <button
-            type="button"
-            onClick={() =>
-              route.push(
-                `/recoverpassword?value=${encodeURIComponent(form.identify)}`
-              )
-            }
-            className="w-full text-sm text-[#d4a373] underline"
-          >
-            Validate Email
-          </button>
-        )}
 
         <input
           name="password"
@@ -117,6 +102,7 @@ const isVerified = verified === "true";
             border border-[#333] text-white
             focus:outline-none focus:ring-2 focus:ring-[#d4a373]
             placeholder-gray-500 transition"
+          suppressHydrationWarning
         />
 
         {/* ROLE SELECT */}
@@ -134,7 +120,6 @@ const isVerified = verified === "true";
               focus:outline-none focus:ring-2 focus:ring-[#d4a373]
               transition"
           >
-            <option value="">Select Role</option>
             <option value="Customer">Customer</option>
             <option value="Seller">Seller</option>
           </select>
@@ -143,11 +128,10 @@ const isVerified = verified === "true";
         {/* BUTTON */}
         <button
           type="submit"
-          disabled={isEmail && !isVerified}
           className="w-full py-3 rounded-xl font-semibold
             bg-gradient-to-r from-[#8b5e3c] to-[#d4a373]
-            text-black hover:opacity-90 transition shadow-lg
-            disabled:opacity-50 disabled:cursor-not-allowed"
+            text-black hover:opacity-90 transition shadow-lg"
+          suppressHydrationWarning
         >
           Create Account
         </button>
@@ -171,5 +155,14 @@ const isVerified = verified === "true";
 
 }
 
-
-export default Signup;
+export default function Signup() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0f0f0f] text-white">
+        <p className="text-gray-400">Loading...</p>
+      </div>
+    }>
+      <SignupInner />
+    </Suspense>
+  );
+}

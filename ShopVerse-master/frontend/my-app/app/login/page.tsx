@@ -38,6 +38,7 @@ const Login = () => {
             password: form.password,
         });
         localStorage.setItem("token", res.data.token);
+        window.dispatchEvent(new Event("auth-change"));
         alert("Login Successful");
         router.refresh();
         router.push("/");
@@ -72,6 +73,7 @@ return (
           border border-[#333] text-white
           focus:outline-none focus:ring-2 focus:ring-[#d4a373]
           placeholder-gray-500 transition"
+          suppressHydrationWarning
         />
 
         <input
@@ -84,6 +86,7 @@ return (
           border border-[#333] text-white
           focus:outline-none focus:ring-2 focus:ring-[#d4a373]
           placeholder-gray-500 transition"
+          suppressHydrationWarning
         />
 
         <button
@@ -91,6 +94,7 @@ return (
           className="w-full py-3 rounded-xl font-semibold
           bg-gradient-to-r from-[#8b5e3c] to-[#d4a373]
           text-black hover:opacity-90 transition shadow-lg"
+          suppressHydrationWarning
         >
           Login
         </button>

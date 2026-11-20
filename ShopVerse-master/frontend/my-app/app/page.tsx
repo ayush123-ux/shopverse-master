@@ -22,40 +22,26 @@ export default function Home() {
 
   const fetchHomeProducts = async () => {
     try {
-      const [homeRes, mensRes, femalesRes,beautyRes,accessRes,kidsRes,bagsRes] = await Promise.all([
-        API.get("/product/list", {
-          params: { category: "home", limit: 6 },
-        }),
-        API.get("/product/list", {
-          params: { category: "mens", limit: 6 },
-        }),
-        API.get("/product/list", {
-          params: { category: "females", limit: 6 },
-        }),
-        API.get("/product/list", {
-          params: { category: "beauty", limit: 6 },
-        }),
-        API.get("/product/list", {
-          params: { category: "access", limit: 6 },
-        }),
-        API.get("/product/list", {
-          params: { category: "kids", limit: 6 },
-        }),
-        API.get("/product/list", {
-          params: { category: "bags", limit: 6 },
-        }),
+      const results = await Promise.allSettled([
+        API.get("/product/list", { params: { category: "home", limit: 6 } }),
+        API.get("/product/list", { params: { category: "mens", limit: 6 } }),
+        API.get("/product/list", { params: { category: "females", limit: 6 } }),
+        API.get("/product/list", { params: { category: "beauty", limit: 6 } }),
+        API.get("/product/list", { params: { category: "access", limit: 6 } }),
+        API.get("/product/list", { params: { category: "kids", limit: 6 } }),
+        API.get("/product/list", { params: { category: "bags", limit: 6 } }),
       ]);
 
-      setHome(homeRes.data);
-      setMens(mensRes.data);
-      setFemales(femalesRes.data);
-      setBeauty(beautyRes.data);
-      setAccess(accessRes.data);
-      setKids(kidsRes.data);
-      setBags(bagsRes.data);
+      if (results[0].status === "fulfilled" && Array.isArray(results[0].value.data)) setHome(results[0].value.data);
+      if (results[1].status === "fulfilled" && Array.isArray(results[1].value.data)) setMens(results[1].value.data);
+      if (results[2].status === "fulfilled" && Array.isArray(results[2].value.data)) setFemales(results[2].value.data);
+      if (results[3].status === "fulfilled" && Array.isArray(results[3].value.data)) setBeauty(results[3].value.data);
+      if (results[4].status === "fulfilled" && Array.isArray(results[4].value.data)) setAccess(results[4].value.data);
+      if (results[5].status === "fulfilled" && Array.isArray(results[5].value.data)) setKids(results[5].value.data);
+      if (results[6].status === "fulfilled" && Array.isArray(results[6].value.data)) setBags(results[6].value.data);
 
     } catch (err) {
-      console.error("Failed to load homepage products");
+      console.error("Failed to load homepage products", err);
     }
   };
 
@@ -69,8 +55,8 @@ export default function Home() {
     {/* 🔥 HERO SECTION */}
     <div className="relative h-[420px] w-full">
       <img
-        src="/banner.jpg"
-        //alt="Banner"
+        src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&auto=format&fit=crop&q=80"
+        alt="ShopVerse Banner"
         className="w-full h-full object-cover"
       />
       <div className="absolute inset-0 bg-black/60 flex items-center justify-center">

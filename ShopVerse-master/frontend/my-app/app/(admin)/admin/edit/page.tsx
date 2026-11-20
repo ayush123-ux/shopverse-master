@@ -1,10 +1,10 @@
 "use client";
 
 import API from "@/lib/axios";
-import { useParams, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 
-export default function AdminEdit() {
+function AdminEditInner() {
     const params=useSearchParams();
     const id=params.get("id") as string;
     const[select,setSelect]=useState("");   
@@ -65,4 +65,16 @@ export default function AdminEdit() {
   </div>
 );
 
+}
+
+export default function AdminEdit() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center">
+        <p className="text-gray-400">Loading...</p>
+      </div>
+    }>
+      <AdminEditInner />
+    </Suspense>
+  );
 }

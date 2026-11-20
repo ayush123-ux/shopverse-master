@@ -22,7 +22,10 @@ const AdminLayout=({children}: Props)=>{
     },[]);
 
     if(allow === null) return <p>Loading...</p>
-    if(!allow) return route.push("/");
+    if(!allow) {
+      route.push("/");
+      return null;
+    }
     return children;
 }
 

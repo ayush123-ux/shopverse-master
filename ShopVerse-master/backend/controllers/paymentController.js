@@ -1,21 +1,21 @@
 require("dotenv").config();
 const Order=require("../models/order");
-const Razorpay = require("razorpay");
 const crypto = require("crypto");
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY,
-  key_secret: process.env.RAZORPAY_SECRET
-});
+// Lazy-initialize Razorpay only when keys are present
+let razorpay = null;
+if (process.env.RAZORPAY_KEY && process.env.RAZORPAY_SECRET) {
+  const Razorpay = require("razorpay");
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY,
+    key_secret: process.env.RAZORPAY_SECRET
+  });
+}
 
 exports.OnlinePayment=async (req,res)=>{
-
-  if(req.user.role !== "Customer") {
-      return res.status(403).json({ error: "Not allowed" });
-    }
-    console.log("KEY:", process.env.RAZORPAY_KEY);
-    console.log("SECRET:", process.env.RAZORPAY_SECRET);
-
+  if (!razorpay) {
+    return res.status(503).json({ error: "Online payment is not configured on this server." });
+  }
 
   const { amount } = req.body;
 
@@ -28,10 +28,6 @@ exports.OnlinePayment=async (req,res)=>{
 };
 
 exports.CashPayment=async (req,res)=>{
-
-  if(req.user.role !== "Customer") {
-      return res.status(403).json({ error: "Not allowed" });
-    }
   const { productId, addressId, quantity, totalAmount } = req.body;
 
   const order = await Order.create({

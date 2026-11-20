@@ -213,20 +213,25 @@ exports.cartAdd=async (req,res)=>{
         if (!prod) {
             return res.status(404).json({ message: "Product not found" });
         }
-        const address = await Address.findOne({
-            user: req.user.id,
-            isActive: true
-        }); 
-        const cart=await Cart.create({
-            items: [
-            {
-                product: id,
-                quantity: quantity
+
+        let cart = await Cart.findOne({ user: req.user.id });
+        if (!cart) {
+            cart = new Cart({
+                user: req.user.id,
+                items: [{ product: id, quantity }]
+            });
+        } else {
+            const itemIndex = cart.items.findIndex(
+                item => item.product && item.product.toString() === id
+            );
+            if (itemIndex > -1) {
+                cart.items[itemIndex].quantity += quantity;
+            } else {
+                cart.items.push({ product: id, quantity });
             }
-            ],
-            user: req.user.id,
-        });
-        res.status(200).json({message: 'Add to Cart successfully'});
+        }
+        await cart.save();
+        res.status(200).json({ message: 'Added to Cart successfully', cart });
     }catch(err){
         console.log(err);
         res.status(500).json({error: 'Internal Server Error'});

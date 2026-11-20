@@ -29,14 +29,18 @@ export default function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const fetchProduct = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const res = await API.get<Product>(`/product/list/${id}`);
       setProduct(res.data);
-    } catch (err) {
-      console.error("Failed to fetch product");
+    } catch (err: any) {
+      console.error("Failed to fetch product:", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to load product details.");
     } finally {
       setLoading(false);
     }
@@ -44,15 +48,23 @@ export default function ProductPage() {
 
   const addCart = async () => {
     try {
-      // ✅ qty body me bhejna
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) {
+        alert("Please log in first to add items to your cart.");
+        router.push("/login");
+        return;
+      }
+
       await API.post(`/product/cart/${id}`, {
         quantity: qty
       });
 
-      alert("Added to cart");
+      alert("Added to cart successfully!");
       router.push("/cart");
-    } catch (err) {
-      console.error("Failed to add cart");
+    } catch (err: any) {
+      console.error("Failed to add cart:", err);
+      const msg = err?.response?.data?.error || err?.response?.data?.message || "Failed to add to cart";
+      alert(msg);
     }
   };
 
@@ -60,8 +72,41 @@ export default function ProductPage() {
     if (id) fetchProduct();
   }, [id]);
 
-  if (loading) return <p className="p-6">Loading product...</p>;
-  if (!product) return <p className="p-6">Product not found</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center p-6">
+        <p className="text-gray-400 text-lg">Loading product...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col items-center justify-center gap-4 p-6">
+        <p className="text-red-400 text-lg font-semibold">{error}</p>
+        <button
+          onClick={() => fetchProduct()}
+          className="px-6 py-2 rounded-xl bg-[#1a1a1a] border border-[#333] hover:bg-[#2a2a2a] text-white transition"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col items-center justify-center gap-4 p-6">
+        <p className="text-gray-400 text-lg">Product not found</p>
+        <Link
+          href="/products"
+          className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#8b5e3c] to-[#d4a373] text-black font-semibold"
+        >
+          Browse Products
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white py-12 px-6">

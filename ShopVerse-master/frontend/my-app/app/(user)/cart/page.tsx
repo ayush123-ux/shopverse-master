@@ -32,8 +32,17 @@ export default function CartPage() {
 
   const fetchCart = async () => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       const res = await API.get<CartItem[]>("/cart/mycart");
-      setCart(res.data);
+      if (Array.isArray(res.data)) {
+        setCart(res.data.filter(item => item && item.product));
+      }
+    } catch (err) {
+      console.error("Failed to fetch cart:", err);
     } finally {
       setLoading(false);
     }
@@ -64,10 +73,28 @@ export default function CartPage() {
     setCart(prev => prev.filter(i => i._id !== id));
   };
 
-  if (loading) return <p className="p-6">Loading...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center p-6">
+        <p className="text-gray-400 text-lg">Loading cart...</p>
+      </div>
+    );
+  }
 
-  if (cart.length === 0)
-    return <p className="p-6">Cart empty</p>;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col items-center justify-center gap-4 p-6">
+        <p className="text-xl text-gray-300">Please log in to view your cart</p>
+        <Link
+          href="/login"
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#8b5e3c] to-[#d4a373] text-black font-semibold hover:opacity-90 transition"
+        >
+          Login
+        </Link>
+      </div>
+    );
+  }
 
   return (
   <div className="min-h-screen bg-[#0f0f0f] text-white px-6 py-12">
@@ -79,8 +106,14 @@ export default function CartPage() {
       </h2>
 
       {cart.length === 0 ? (
-        <div className="text-center text-gray-400 mt-10">
-          Your cart is empty 🛒
+        <div className="text-center text-gray-400 py-16 flex flex-col items-center gap-4">
+          <p className="text-2xl">Your cart is empty 🛒</p>
+          <Link
+            href="/products"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#8b5e3c] to-[#d4a373] text-black font-semibold hover:opacity-90 transition"
+          >
+            Explore Products
+          </Link>
         </div>
       ) : (
         cart.map((c) => (

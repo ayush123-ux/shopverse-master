@@ -2,9 +2,6 @@ const Address=require("../models/address");
 
 exports.addressAdd=async (req,res)=>{
     try{
-        if (req.user.role !== "Customer") {
-            return res.status(403).json({ error: "Not allowed" });
-        }
         const data=req.body;
         if(data.isActive === true){
             await Address.updateMany(
@@ -22,10 +19,6 @@ exports.addressAdd=async (req,res)=>{
 
 exports.addressUpdate=async (req,res)=>{
     try{
-        if (req.user.role !== "Customer") {
-            return res.status(403).json({ error: "Not allowed" });
-        }
-        
         const id=req.params.id;
         const updateData={};
         if(req.body.fullName)updateData.fullName=req.body.fullName;
@@ -58,10 +51,6 @@ exports.addressUpdate=async (req,res)=>{
 
 exports.addressSelect=async (req,res)=>{
     try{
-        if (req.user.role !== "Customer") {
-            return res.status(403).json({ error: "Not allowed" });
-        }
-        
         const id=req.params.id;
         await Address.updateMany(
             {user: req.user.id},
@@ -81,10 +70,6 @@ exports.addressSelect=async (req,res)=>{
 
 exports.addressRemove=async (req,res)=>{
     try{
-        if (req.user.role !== "Customer") {
-            return res.status(403).json({ error: "Not allowed" });
-        }
-
         const id=req.params.id;
         const del=await Address.findByIdAndDelete({_id: id ,user: req.user.id});
          if(!del){
@@ -101,9 +86,6 @@ exports.addressRemove=async (req,res)=>{
 
 exports.addressList=async (req,res)=>{
     try{
-        if (req.user.role !== "Customer") {
-            return res.status(403).json({ error: "Not allowed" });
-        }
         const add=await Address.find({user: req.user.id});
         res.status(200).json(add);
     }catch(err){

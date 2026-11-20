@@ -2,7 +2,8 @@
 
 import API from "@/lib/axios";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Product = {
   _id: string;
@@ -20,13 +21,15 @@ type Product = {
   skinType: string;
 };
 
-export default function Products() {
-  const [category, setCategory] = useState("");
-const [type, setType] = useState("");
-const [search, setSearch] = useState("");
+function ProductsInner() {
+  const searchParams = useSearchParams();
+  const [category, setCategory] = useState(searchParams.get("category") || "");
+  const [type, setType] = useState(searchParams.get("type") || "");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [page, setPage] = useState(1);  
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // ✅ CLEAN FILTER STATE
   const [filters, setFilters] = useState({
@@ -43,13 +46,13 @@ const [search, setSearch] = useState("");
   // ✅ FILTER CONFIG (TYPE BASED)
 
   const FILTERS_BY_CATEGORY: Record<string, string[]> = { 
-    mens: ["shirt", "pant", "watch"],
-    females: ["suit", "saree", "top","watch"],
-    beauty: ["cream"],
-    access: ["headph"],
-    kids: ["shirt", "pant", "suit", "top"],
-    home: ["watch"],
-    bags: ["bag"],
+    mens: ["shirt", "pant", "suit", "jeans", "watch"],
+    females: ["suit", "saree", "top", "dress", "watch"],
+    beauty: ["cream", "facewash", "serum"],
+    access: ["headph", "watch", "belt"],
+    kids: ["shirt", "pant", "suit", "top", "toys"],
+    home: ["watch", "decor"],
+    bags: ["bag", "backpack", "handbag"],
   };
 
   const FILTERS_BY_TYPE: Record<string, string[]> = {
@@ -58,15 +61,31 @@ const [search, setSearch] = useState("");
     suit: ["fabric", "size", "color"],
     saree: ["fabric", "color"],
     top: ["fabric", "size", "color"],
+    dress: ["color", "size"],
+    jeans: ["size", "color"],
     watch: ["brand", "gender"],
     cream: ["brand", "skinType"],
-    headph: ["brand"],
+    facewash: ["brand", "skinType"],
+    serum: ["brand", "skinType"],
+    headph: ["brand", "color"],
+    belt: ["color"],
+    toys: ["color"],
+    decor: ["color"],
+    bag: ["color"],
+    backpack: ["color"],
+    handbag: ["color"],
   };
   const BRAND_OPTIONS: Record<string, string[]> = {
     shirt: ["Gucci", "Armani"],
+    pant: ["Armani"],
+    suit: ["Gucci", "Armani"],
+    jeans: ["Armani"],
     watch: ["Rolex", "Titan"],
-    beauty: ["MamaEarth", "Sugar"],
+    cream: ["MamaEarth", "Sugar", "Nivea"],
+    facewash: ["MamaEarth", "Lakme"],
+    serum: ["Sugar"],
     headph: ["Sony", "Boat"],
+    belt: ["Armani"],
   };
   
 
@@ -74,6 +93,7 @@ const [search, setSearch] = useState("");
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await API.get("/product/list", {
         params: {
           category,
@@ -85,27 +105,32 @@ const [search, setSearch] = useState("");
         },
       });
 
-      setProducts(res.data);
-    } catch (err) {
-      console.error("Failed to fetch products");
+      if (Array.isArray(res.data)) {
+        setProducts(res.data);
+      } else if (res.data && Array.isArray(res.data.products)) {
+        setProducts(res.data.products);
+      } else {
+        setProducts([]);
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch products:", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to load products. Please check if the server is running.");
     } finally {
       setLoading(false);
     }
   };
 
-useEffect(() => {
-  if (typeof window === "undefined") return;
-
-  const params = new URLSearchParams(window.location.search);
-
-  setCategory(params.get("category") || "");
-  setType(params.get("type") || "");
-  setSearch(params.get("search") || "");
-}, []);
+  // Sync state when URL search params change (e.g. navbar category links)
+  useEffect(() => {
+    setCategory(searchParams.get("category") || "");
+    setType(searchParams.get("type") || "");
+    setSearch(searchParams.get("search") || "");
+    setPage(1);
+  }, [searchParams]);
 
   useEffect(() => {
       fetchProducts();
-  }, [category, type, filters]);
+  }, [category, type, filters, search, page]);
 
   const filtertype = FILTERS_BY_CATEGORY[category || ""] || [];
 
@@ -123,8 +148,6 @@ useEffect(() => {
   else{
     filtersToShow = FILTERS_BY_TYPE[type || ""] || [];
   }
-
-  if (loading) return <p className="p-6">Loading products...</p>;
 
   return (
   <div className="min-h-screen bg-[#0f0f0f] text-white px-6 py-8">
@@ -163,13 +186,11 @@ useEffect(() => {
           border border-[#333] focus:ring-2 focus:ring-[#d4a373]"
         >
           <option value="">All Types</option>
-          {filtertype.includes("shirt") && (<option value="shirt">Shirt</option>)}
-          {filtertype.includes("pant") && (<option value="pant">Pant</option>)}
-          {filtertype.includes("suit") && (<option value="suit">Suit</option>)}
-          {filtertype.includes("saree") && (<option value="saree">Saree</option>)}
-          {filtertype.includes("top") && (<option value="top">Top</option>)}
-          {filtertype.includes("watch") && (<option value="watch">Watch</option>)}
-          {filtertype.includes("cream") && (<option value="cream">Skin Creams</option>)}
+          {filtertype.map((t) => (
+            <option key={t} value={t}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </option>
+          ))}
         </select>
 
         <div className="space-y-4">
@@ -266,33 +287,53 @@ useEffect(() => {
       {/* PRODUCTS GRID */}
       <div className="md:col-span-3">
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-          {products.map((p) => (
-            <Link
-              key={p._id}
-              href={`/product/${p._id}`}
-              className="bg-[#1a1a1a] border border-[#2a2a2a]
-              rounded-2xl overflow-hidden shadow-lg
-              hover:shadow-[#d4a373]/20 hover:scale-105
-              transition duration-300"
+        {loading ? (
+          <div className="text-center text-gray-400 py-20">
+            <p className="text-lg">Loading products...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-400 py-20 space-y-4">
+            <p className="text-lg font-semibold">{error}</p>
+            <button
+              onClick={() => fetchProducts()}
+              className="px-6 py-2 rounded-lg bg-[#1a1a1a] border border-[#333] hover:bg-[#2a2a2a] text-white transition"
             >
-              <img
-                src={p.image}
-                alt={p.title}
-                className="h-48 w-full object-cover"
-              />
+              Retry
+            </button>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center text-gray-400 py-20">
+            <p className="text-lg">No products found.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {products.map((p) => (
+              <Link
+                key={p._id}
+                href={`/product/${p._id}`}
+                className="bg-[#1a1a1a] border border-[#2a2a2a]
+                rounded-2xl overflow-hidden shadow-lg
+                hover:shadow-[#d4a373]/20 hover:scale-105
+                transition duration-300"
+              >
+                <img
+                  src={p.image}
+                  alt={p.title}
+                  className="h-48 w-full object-cover"
+                />
 
-              <div className="p-4">
-                <p className="font-semibold text-gray-200 line-clamp-2">
-                  {p.title}
-                </p>
-                <p className="mt-2 text-[#d4a373] font-bold text-lg">
-                  ₹{p.price}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+                <div className="p-4">
+                  <p className="font-semibold text-gray-200 line-clamp-2">
+                    {p.title}
+                  </p>
+                  <p className="mt-2 text-[#d4a373] font-bold text-lg">
+                    ₹{p.price}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* PAGINATION */}
         <div className="flex justify-center gap-6 mt-10">
@@ -320,4 +361,16 @@ useEffect(() => {
   </div>
 );
 
+}
+
+export default function Products() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center">
+        <p className="text-gray-400">Loading products...</p>
+      </div>
+    }>
+      <ProductsInner />
+    </Suspense>
+  );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import API from "@/lib/axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import {  useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 type AddressInfo = {
   _id: string;
@@ -32,20 +33,12 @@ type Product = {
   skinType: string;
 };
 
-export default function Payment() {
+function PaymentInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
- const productId =
-  typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("product")
-    : null;
-
-const qty =
-  typeof window !== "undefined"
-    ? Number(
-        new URLSearchParams(window.location.search).get("qty")
-      ) || 1
-    : 1;
+  const productId = searchParams.get("product");
+  const qty = Number(searchParams.get("qty")) || 1;
 
   const [addresses, setAddresses] = useState<AddressInfo[]>([]);
   const [product, setProduct] = useState<Product | null>(null);
@@ -361,5 +354,17 @@ const placeOnline = async () => {
 
 </div>
 
+  );
+}
+
+export default function Payment() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center">
+        <p className="text-gray-400">Loading checkout...</p>
+      </div>
+    }>
+      <PaymentInner />
+    </Suspense>
   );
 }

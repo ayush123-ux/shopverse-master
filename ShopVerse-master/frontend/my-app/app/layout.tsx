@@ -9,8 +9,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-[#0f0f0f] text-white">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-[#0f0f0f] text-white" suppressHydrationWarning>
 
         {/* 👇 Razorpay Script Add Karo Yaha */}
         <Script

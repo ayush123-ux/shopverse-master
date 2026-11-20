@@ -3,9 +3,10 @@
 import API from "@/lib/axios";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 type User = {
+  name?: string;
   role: "Customer" | "admin" | "Seller";
 };
 
@@ -15,15 +16,38 @@ export default function NavBar() {
   const [token, setToken] = useState<string | null>(null);
 
   const router = useRouter();
+  const pathname = usePathname();
+
+  const syncAuth = () => {
+    const t = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (t && t !== "undefined" && t !== "null") {
+      setToken(t);
+    } else {
+      setToken(null);
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
-    const t = localStorage.getItem("token");
-    setToken(t);
-  }, []);
+    syncAuth();
+
+    const handleStorageChange = () => syncAuth();
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("auth-change", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("auth-change", handleStorageChange);
+    };
+  }, [pathname]);
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    router.push(`/products?search=${search}`);
+    if (search.trim()) {
+      router.push(`/products?search=${encodeURIComponent(search.trim())}`);
+    } else {
+      router.push("/products");
+    }
   };
 
   const fetchUser = async () => {
@@ -43,6 +67,9 @@ export default function NavBar() {
 
   const logout = () => {
     localStorage.removeItem("token");
+    setToken(null);
+    setUser(null);
+    window.dispatchEvent(new Event("auth-change"));
     router.refresh();
     router.push("/");
   };
@@ -54,6 +81,7 @@ export default function NavBar() {
     { label: "Home & Kitchen", value: "home" },
     { label: "Beauty & Health", value: "beauty" },
     { label: "Accessories", value: "access" },
+    { label: "Bags", value: "bags" },
   ];
 
   return (
@@ -63,7 +91,7 @@ export default function NavBar() {
 
     {/* LEFT SIDE */}
     <div className="flex items-center gap-8">
-      <Link href="/" className="text-xl font-bold text-[#d4a373]">
+      <Link href="/" className="text-xl font-bold text-[#d4a373] tracking-wide">
         ShopVerse
       </Link>
 
@@ -81,11 +109,13 @@ export default function NavBar() {
         onChange={(e) => setSearch(e.target.value)}
         className="px-4 py-2 bg-[#1a1a1a] border border-[#333] 
         rounded-l-lg text-white focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+        suppressHydrationWarning
       />
       <button
         type="submit"
         className="px-4 bg-gradient-to-r from-[#8b5e3c] to-[#d4a373]
-        text-black rounded-r-lg"
+        text-black rounded-r-lg font-medium hover:opacity-90 transition"
+        suppressHydrationWarning
       >
         Search
       </button>
@@ -93,6 +123,10 @@ export default function NavBar() {
 
     {/* RIGHT SIDE */}
     <div className="flex items-center gap-6">
+
+      <Link href="/cart" className="hover:text-[#d4a373] transition flex items-center gap-1 font-medium">
+        Cart
+      </Link>
 
       {!token ? (
         <>
@@ -103,79 +137,76 @@ export default function NavBar() {
         <>
           {/* PROFILE DROPDOWN */}
           <div className="relative group">
-            <button className="hover:text-[#d4a373]">
-              Account ▾
+            <button className="hover:text-[#d4a373] flex items-center gap-1">
+              {user?.name ? `${user.name} ▾` : "Account ▾"}
             </button>
 
             <div className="absolute right-0 mt-2 w-52 bg-[#1a1a1a]
               border border-[#333] rounded-xl shadow-xl
               opacity-0 invisible group-hover:opacity-100 
-              group-hover:visible transition-all duration-200">
+              group-hover:visible transition-all duration-200 z-50">
 
-              {user?.role === "Customer" && (
-                <>
-                  <Link href="/profile"
+              <Link href="/profile"
+                className="block px-4 py-2 hover:bg-[#2a2a2a]">
+                My Profile
+              </Link>
+
+              <Link href="/profile/update"
+                className="block px-4 py-2 hover:bg-[#2a2a2a]">
+                Update Profile
+              </Link>
+
+              <Link href="/profile/password"
+                className="block px-4 py-2 hover:bg-[#2a2a2a]">
+                Change Password
+              </Link>
+
+              <Link href="/myorders"
+                className="block px-4 py-2 hover:bg-[#2a2a2a]">
+                My Orders
+              </Link>
+
+              <Link href="/cart"
+                className="block px-4 py-2 hover:bg-[#2a2a2a]">
+                My Cart
+              </Link>
+
+              {/* ADDRESS DROPDOWN INSIDE */}
+              <div className="relative group/address">
+
+                <button className="w-full text-left px-4 py-2 hover:bg-[#2a2a2a]">
+                  Address ▸
+                </button>
+
+                <div className="absolute left-full top-0 w-44 bg-[#1a1a1a]
+                  border border-[#333] rounded-xl shadow-xl
+                  opacity-0 invisible group-hover/address:opacity-100 
+                  group-hover/address:visible transition">
+
+                  <Link href="/address"
                     className="block px-4 py-2 hover:bg-[#2a2a2a]">
-                    My Profile
+                    Add Address
                   </Link>
 
-                  <Link href="/profile/update"
+                  <Link href="/address/list"
                     className="block px-4 py-2 hover:bg-[#2a2a2a]">
-                    Update Profile
+                    My Addresses
                   </Link>
 
-                  <Link href="/profile/password"
-                    className="block px-4 py-2 hover:bg-[#2a2a2a]">
-                    Change Password
-                  </Link>
-
-                  <Link href="/myorders"
-                    className="block px-4 py-2 hover:bg-[#2a2a2a]">
-                    My Orders
-                  </Link>
-
-                  <Link href="/cart"
-                    className="block px-4 py-2 hover:bg-[#2a2a2a]">
-                    My Cart
-                  </Link>
-
-                  {/* ADDRESS DROPDOWN INSIDE */}
-                  <div className="relative group/address">
-
-                    <button className="w-full text-left px-4 py-2 hover:bg-[#2a2a2a]">
-                      Address ▸
-                    </button>
-
-                    <div className="absolute left-full top-0 w-44 bg-[#1a1a1a]
-                      border border-[#333] rounded-xl shadow-xl
-                      opacity-0 invisible group-hover/address:opacity-100 
-                      group-hover/address:visible transition">
-
-                      <Link href="/address"
-                        className="block px-4 py-2 hover:bg-[#2a2a2a]">
-                        Add Address
-                      </Link>
-
-                      <Link href="/address/list"
-                        className="block px-4 py-2 hover:bg-[#2a2a2a]">
-                        My Addresses
-                      </Link>
-
-                    </div>
-                  </div>
-                </>
-              )}
+                </div>
+              </div>
 
               {(user?.role === "admin" || user?.role === "Seller") && (
                 <>
+                  <div className="border-t border-[#333] my-1"></div>
                   <Link href="/dashboard"
-                    className="block px-4 py-2 hover:bg-[#2a2a2a]">
+                    className="block px-4 py-2 hover:bg-[#2a2a2a] text-[#d4a373]">
                     Dashboard
                   </Link>
 
                   <Link href="/orders"
                     className="block px-4 py-2 hover:bg-[#2a2a2a]">
-                    Orders
+                    Manage Orders
                   </Link>
 
                   <Link href="/add"
@@ -187,7 +218,7 @@ export default function NavBar() {
 
               <button
                 onClick={logout}
-                className="w-full text-left px-4 py-2 text-red-500 hover:bg-[#2a2a2a]"
+                className="w-full text-left px-4 py-2 text-red-500 hover:bg-[#2a2a2a] border-t border-[#333]"
               >
                 Logout
               </button>
@@ -200,13 +231,13 @@ export default function NavBar() {
   </div>
 
   {/* CATEGORY BAR */}
-  <div className="flex gap-6 px-8 py-3 border-t border-[#2a2a2a] text-sm font-medium">
+  <div className="flex gap-6 px-8 py-3 border-t border-[#2a2a2a] text-sm font-medium overflow-x-auto">
 
     {CATEGORIES.map((cat) => (
       <Link
         key={cat.value}
         href={`/products?category=${cat.value}`}
-        className="hover:text-[#d4a373] transition"
+        className="hover:text-[#d4a373] transition whitespace-nowrap"
       >
         {cat.label}
       </Link>
